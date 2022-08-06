@@ -1,0 +1,33 @@
+name:                ascii-ball-gui
+version:             0.1.0.0
+#synopsis:
+#description:
+homepage:            https://github.com/danebulat
+license:             BSD3
+author:              Dane Bulat
+maintainer:          dane.bulat@gmail.com
+copyright:           2022 Dane Bulat
+#category:
+extra-source-files:
+- README.md
+
+default-extensions:
+- OverloadedStrings
+
+dependencies:
+  - base >= 4.7 && < 5
+  - data-default
+  - lens
+  - monomer
+  - random
+  - text
+  - text-show
+  - time
+
+executables:
+  app:
+    source-dirs:      [app, src]
+    main:             Main.hs
+    ghc-options:
+    - -fwarn-incomplete-patterns
+    #- -threaded
