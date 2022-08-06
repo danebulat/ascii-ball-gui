@@ -5,6 +5,8 @@ module AppTypes where
 
 import Control.Lens.TH
 import Data.Default 
+import Data.Time (TimeOfDay)
+import Animation (getLocalTimeOfDay)
 
 -- -------------------------------------------------------------------
 -- Animation types 
@@ -29,21 +31,25 @@ data RenderChars = RenderChars
   , _ballChar           :: Char
   } deriving (Eq, Show)
 
-data Config = Config
+data AppModel = AppModel
   { _ballInitialVelocity :: Vector
   , _ballInitialPosition :: Vector
   , _frameWidth          :: Int
   , _frameHeight         :: Int
   , _renderChars         :: RenderChars
+  , _currentTime         :: TimeOfDay
   } deriving (Eq, Show)
 
 makeLenses 'RenderChars
-makeLenses 'Config
+makeLenses 'AppModel
 
 -- -------------------------------------------------------------------
 -- Events
 
--- | TODO : Types for event handling
+data AppEvent
+  = AppInit
+  | AppSetTime TimeOfDay
+  deriving (Eq, Show)
 
 -- -------------------------------------------------------------------
 -- Defaults
@@ -56,11 +62,12 @@ instance Default RenderChars where
     , _ballChar           = 'x'
     }
 
-instance Default Config where
-  def = Config
+instance Default AppModel where
+  def = AppModel
     { _ballInitialVelocity = Vector 1 1
     , _ballInitialPosition = Vector 3 4
     , _frameWidth          = 20
     , _frameHeight         = 20
-    , _renderChars         = def :: RenderChars 
+    , _renderChars         = def :: RenderChars
+    , _currentTime         = undefined  -- put getLocalTimeOfDay in module and call here
     }

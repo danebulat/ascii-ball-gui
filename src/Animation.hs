@@ -1,1 +1,96 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Animation where
+
+import Control.Concurrent ( threadDelay )
+import Control.Lens
+import Data.Default
+import Data.Text          ( Text )
+import Data.Time
+import Monomer
+
+import qualified Data.Text as T
+import qualified Monomer.Lens as L
+
+import AppTypes 
+
+-- -------------------------------------------------------------------
+-- Build UI
+
+buildUI
+  :: WidgetEnv AppModel AppEvent
+  -> AppModel
+  -> WidgetNode AppModel AppEvent
+buildUI wenv model = widgetTree
+  where
+    -- get current time from model as string 
+    timeString = T.pack . show $ model ^. currentTime
+
+    -- time label
+    timeLabel = label (T.takeWhile (/= '.') timeString)
+      `styleBasic` [textFont "Bold", textSize 80, textCenter, textMiddle, flexHeight 100]
+
+    -- main ui
+    widgetTree = vstack [
+        animFadeIn_ [duration 250] timeLabel `nodeKey` "fadeTimeLabel"
+      ]
+    
+-- -------------------------------------------------------------------
+-- Event handler
+
+handleEvent
+  :: WidgetEnv AppModel AppEvent
+  -> WidgetNode AppModel AppEvent
+  -> AppModel
+  -> AppEvent
+  -> [AppEventResponse AppModel AppEvent]
+handleEvent wenv node model evt =
+  case evt of
+    -- start time producer
+    AppInit -> [Producer timeOfDayProducer]
+
+    -- update time in model
+    AppSetTime time -> fadeInMsg time ++ [Model $ model & currentTime .~ time]
+  where
+    fadeInMsg time
+      -- todSec converts time to seconds
+      | truncate (todSec time) `mod` 10 /= 0 = []
+      | otherwise = [Message "fadeTimeLabel" AnimationStart]
+
+-- -------------------------------------------------------------------
+-- Producers
+
+timeOfDayProducer :: (AppEvent -> IO ()) -> IO ()
+timeOfDayProducer sendMsg = do
+  time <- getLocalTimeOfDay   -- get current time
+  sendMsg (AppSetTime time)   -- broadcast AppSetTime event to add
+  threadDelay $ 1000 * 1000   -- delays thread for 1 second
+  timeOfDayProducer sendMsg   -- re-call function recursively
+
+getLocalTimeOfDay :: IO TimeOfDay
+getLocalTimeOfDay = do
+  time <- getZonedTime        -- IO ZonedTime
+  return
+    . localTimeOfDay          -- LocalTime -> TimeOfDay
+    . zonedTimeToLocalTime    -- ZonedTime -> LocalTime (a local time together with a time zone)
+    $ time                    -- IO TimeOfDay 
+
+-- -------------------------------------------------------------------
+-- Main
+
+main :: IO ()
+main = do
+  time <- getLocalTimeOfDay
+  startApp (model time) handleEvent buildUI config
+  where
+    config =
+      [ appWindowTitle "Ascii Ball GUI"
+      , appWindowIcon  "./assets/images/icon.png"
+      , appTheme       darkTheme
+      , appFontDef     "Regular" "./assets/fonts/Roboto-Regular.ttf"
+      , appFontDef     "Bold"    "./assets/fonts/Roboto-Bold.ttf"
+      , appInitEvent   AppInit ]
+    model time =
+      let m = def :: AppModel
+      in m {_currentTime = time }
+  
