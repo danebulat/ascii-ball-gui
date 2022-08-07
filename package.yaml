@@ -30,7 +30,11 @@ executables:
     main:             Main.hs
     ghc-options:
     - -fwarn-incomplete-patterns
+    other-modules:
+      [ Animation
+      , AppTypes ]
 
     # Turned off due to rendering issues when resizing the
     # rendering window during runtime.
     #- -threaded
+

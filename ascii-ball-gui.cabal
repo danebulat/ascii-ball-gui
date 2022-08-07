@@ -21,7 +21,6 @@ executable app
   other-modules:
       Animation
       AppTypes
-      Paths_ascii_ball_gui
   hs-source-dirs:
       app
       src

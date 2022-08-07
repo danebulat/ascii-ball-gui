@@ -6,7 +6,6 @@ module AppTypes where
 import Control.Lens.TH
 import Data.Default 
 import Data.Time (TimeOfDay)
-import Animation (getLocalTimeOfDay)
 
 -- -------------------------------------------------------------------
 -- Animation types 
