@@ -31,7 +31,7 @@ executables:
     ghc-options:
     - -fwarn-incomplete-patterns
     other-modules:
-      [ Animation
+      [ AppAnimation
       , AppTypes
       , GUI ]
 

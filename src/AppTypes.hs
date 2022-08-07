@@ -40,6 +40,7 @@ data AppModel = AppModel
   , _currentTime         :: TimeOfDay
   , _renderString        :: Text
   , _animationState      :: AnimationState
+  , _startBtnEnabled     :: Bool 
   } deriving (Eq, Show)
 
 makeLenses 'Vector
@@ -55,8 +56,9 @@ data AppEvent
   | AppSetTime TimeOfDay
   | RenderAnimation
   | DoNothing Int
+  | DisableStartButton
   | UpdatePosX
-  | AppReset
+  | AppStart
   | AppExit
   deriving (Eq, Show)
 
@@ -84,4 +86,5 @@ instance Default AppModel where
     , _currentTime         = undefined  -- put getLocalTimeOfDay in module and call here
     , _renderString        = ""
     , _animationState      = AnimationState (Vector 1 1) (Vector 3 4)
+    , _startBtnEnabled     = True
     }

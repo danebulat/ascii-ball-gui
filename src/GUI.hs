@@ -15,8 +15,7 @@ import qualified Data.Text as T
 import qualified Monomer.Lens as L
 
 import AppTypes
-import Animation
-import AppTypes (animationState, frameWidth, AppEvent (RenderAnimation, UpdatePosX), frameHeight)
+import AppAnimation
 
 -- -------------------------------------------------------------------
 -- Build UI
@@ -30,7 +29,7 @@ buildUI wenv model = widgetTree
     -- variables
     containerBg = rgba 0 0 0 0.2
     containerBorder = border 1.0 black
-    
+
     -- get current time from model as string 
     timeString = T.pack . show $ model ^. currentTime
 
@@ -42,7 +41,7 @@ buildUI wenv model = widgetTree
     widgetTree = zstack [
       -- patterned background
       image_ "./assets/images/pattern09.png" [fitFill, imageRepeatX, imageRepeatY],
-      
+
       zstack [
           -- outer-most hstack to hold box containers
           hstack_ [childSpacing_ 10] [
@@ -56,32 +55,37 @@ buildUI wenv model = widgetTree
                 -- current time 
                 animFadeIn_ [duration 250] timeLabel
                   `nodeKey` "fadeTimeLabel",
-                
+
                 -- input fields
                 spacer,
-                hgrid [ label "PosX:", numericField (ballInitialPosition . getX)],
-                hgrid [ label "PosY:", numericField (ballInitialPosition . getY)],
-                
-                hgrid [ label "VelX:", numericField (ballInitialVelocity . getX)],
-                hgrid [ label "VelY:", numericField (ballInitialVelocity . getY)],
-                
+                hgrid [ label "PosX:", numericField_ (animationState . ballPosition . getX) [readOnly]],
+                hgrid [ label "PosY:", numericField_ (animationState . ballPosition . getY) [readOnly]],
+
+                hgrid [ label "VelX:", numericField_ (animationState . ballVelocity . getX) [readOnly]],
+                hgrid [ label "VelY:", numericField_ (animationState . ballVelocity . getY) [readOnly]],
+
                 -- Filler to bottom of container
                 filler,
-                
+
                 -- exit button
                 hstack_ [childSpacing_ 10] [
-                  button "Reset" AppReset `styleBasic` [flexWidth 100],
-                  mainButton "Exit" AppExit `styleBasic` [flexWidth 100]
+                  mainButton_ "Start" AppStart [onClick DisableStartButton]
+                    `nodeEnabled` model ^. startBtnEnabled
+                    `styleBasic` [flexWidth 100],
+
+                  button "Exit" AppExit `styleBasic` [flexWidth 100]
                 ]
               ] `styleBasic` [flexWidth 100, bgColor containerBg, padding 10, containerBorder],
 
             -- right vstack
             vstack [
-                label "animation here..." `styleBasic` [textCenter, textMiddle],
-                spacer,
-                spacer,
-                label_  "line 01\nline 02\nline 03" [multiline]
-                  `styleBasic` [textFont "HackRegular", textSize 12, textCenter, textMiddle]
+                label "Press Start"
+                  `nodeVisible` model ^. startBtnEnabled
+                  `styleBasic` [textCenter, textMiddle, flexHeight 50],
+
+                label_  (model ^. renderString) [multiline]
+                  `nodeVisible` not (model ^. startBtnEnabled)
+                  `styleBasic` [textFont "HackRegular", textSize 12, textCenter, textMiddle, flexHeight 100]
               ] `styleBasic` [bgColor containerBg, padding 10, containerBorder, flexWidth 100]
             ]
         ] `styleBasic` [padding 10]
@@ -115,18 +119,21 @@ handleEvent wenv node model evt =
 
       in [ Model $ model & renderString   .~ T.pack new_string'
                          & animationState .~ next_anim_state
-         , Event UpdatePosX ]
+         ]
 
     -- update position
     UpdatePosX ->
-      [Task $ DoNothing <$> 
+      [Task $ DoNothing <$>
           --((putStrLn $ show (model ^. animationState . ballPosition)) >> return 0)
           ((putStrLn $ T.unpack $ model ^. renderString) >> return 0)]
 
     DoNothing _ -> []
-    
+
     -- reset animation settings
-    AppReset -> [Event RenderAnimation]
+    AppStart -> [Producer renderProducer]
+
+    -- disable start button after clicked
+    DisableStartButton -> [ Model $ model & startBtnEnabled .~ False ]
 
     -- exit app
     AppExit -> [exitApplication]
@@ -147,7 +154,7 @@ addNewlines (x:y:xs)
   | [x,y] == "||"  = "|\n|"  ++ addNewlines xs
   | [x,y] == "\\|" = "\\\n|" ++ addNewlines xs
   | [x,y] == "|\\" = "|\n\\" ++ addNewlines xs
-  | otherwise      = x : addNewlines (y:xs)
+  | otherwise  = x : addNewlines (y:xs)
 
 -- -------------------------------------------------------------------
 -- Producers

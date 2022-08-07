@@ -1,4 +1,4 @@
-module Animation where
+module AppAnimation where
 
 import AppTypes
 

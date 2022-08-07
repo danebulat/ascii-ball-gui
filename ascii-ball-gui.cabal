@@ -19,7 +19,7 @@ extra-source-files:
 executable app
   main-is: Main.hs
   other-modules:
-      Animation
+      AppAnimation
       AppTypes
       GUI
   hs-source-dirs:
