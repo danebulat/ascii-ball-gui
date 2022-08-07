@@ -23,12 +23,16 @@ buildUI
   -> WidgetNode AppModel AppEvent
 buildUI wenv model = widgetTree
   where
+    -- variables
+    containerBg = rgba 0 0 0 0.2
+    containerBorder = border 1.0 black
+    
     -- get current time from model as string 
     timeString = T.pack . show $ model ^. currentTime
 
     -- time label
     timeLabel = label (T.takeWhile (/= '.') timeString)
-      `styleBasic` [textFont "Bold", textColor white, textSize 24, textCenter, textMiddle, flexHeight 100]
+      `styleBasic` [textFont "Bold", textColor white, textSize 18, textLeft, textTop, flexHeight 100]
 
     -- main ui
     widgetTree = zstack [
@@ -40,17 +44,19 @@ buildUI wenv model = widgetTree
           hstack_ [childSpacing_ 10] [
 
             -- left vstack
-            vstack [
+            vstack_ [childSpacing_ 10] [
+                label "Ascii Ball GUI" `styleBasic` [textFont "Bold", textSize 20],
+                
                 animFadeIn_ [duration 250] timeLabel
                   `nodeKey` "fadeTimeLabel"
                   `styleBasic` [flexWidth 100]
-              ] `styleBasic` [bgColor black],
+              ] `styleBasic` [bgColor containerBg, padding 10, containerBorder],
 
             -- right vstack
             vstack [
                 label "animation here..." `styleBasic` [textCenter, textMiddle, flexHeight 100]
                   `styleBasic` [flexWidth 100]
-              ] `styleBasic` [bgColor darkGray]
+              ] `styleBasic` [bgColor containerBg, padding 10, containerBorder]
             ]
         ] `styleBasic` [padding 10]
       ]
@@ -113,4 +119,3 @@ main = do
     model time =
       let m = def :: AppModel
       in m {_currentTime = time }
-  
