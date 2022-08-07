@@ -5,14 +5,15 @@ module AppTypes where
 
 import Control.Lens.TH
 import Data.Default 
-import Data.Time (TimeOfDay)
+import Data.Time ( TimeOfDay )
+import Data.Text ( Text )
 
 -- -------------------------------------------------------------------
 -- Animation types 
 
 data Vector = Vector
-  { getX :: Int
-  , getY :: Int
+  { _getX :: Int
+  , _getY :: Int
   } deriving (Eq, Show)
 
 data AnimationState = AnimationState
@@ -39,6 +40,7 @@ data AppModel = AppModel
   , _currentTime         :: TimeOfDay
   } deriving (Eq, Show)
 
+makeLenses 'Vector
 makeLenses 'RenderChars
 makeLenses 'AppModel
 
@@ -48,6 +50,9 @@ makeLenses 'AppModel
 data AppEvent
   = AppInit
   | AppSetTime TimeOfDay
+  | UpdatePosX
+  | AppReset
+  | AppExit
   deriving (Eq, Show)
 
 -- -------------------------------------------------------------------

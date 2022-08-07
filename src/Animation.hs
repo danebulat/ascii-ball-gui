@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module Animation where
 
@@ -7,6 +8,7 @@ import Control.Lens
 import Data.Default
 import Data.Text          ( Text )
 import Data.Time
+import TextShow           ( showt )
 import Monomer
 
 import qualified Data.Text as T
@@ -32,7 +34,7 @@ buildUI wenv model = widgetTree
 
     -- time label
     timeLabel = label (T.takeWhile (/= '.') timeString)
-      `styleBasic` [textFont "Bold", textColor white, textSize 18, textLeft, textTop, flexHeight 100]
+      `styleBasic` [textFont "Bold", textColor white, textSize 18, textLeft, textTop]
 
     -- main ui
     widgetTree = zstack [
@@ -45,18 +47,37 @@ buildUI wenv model = widgetTree
 
             -- left vstack
             vstack_ [childSpacing_ 10] [
+
+                -- title 
                 label "Ascii Ball GUI" `styleBasic` [textFont "Bold", textSize 20],
-                
+
+                -- current time 
                 animFadeIn_ [duration 250] timeLabel
-                  `nodeKey` "fadeTimeLabel"
-                  `styleBasic` [flexWidth 100]
-              ] `styleBasic` [bgColor containerBg, padding 10, containerBorder],
+                  `nodeKey` "fadeTimeLabel",
+                
+                -- input fields
+                spacer,
+                hgrid [ label "PosX:", numericField (ballInitialPosition . getX)],
+                hgrid [ label "PosY:", numericField (ballInitialPosition . getY)],
+                
+                hgrid [ label "VelX:", numericField (ballInitialVelocity . getX)],
+                hgrid [ label "VelY:", numericField (ballInitialVelocity . getY)],
+                
+                -- Filler to bottom of container
+                filler,
+                
+                -- exit button
+                hstack_ [childSpacing_ 10] [
+                  button "Reset" AppReset `styleBasic` [flexWidth 100],
+                  mainButton "Exit" AppExit `styleBasic` [flexWidth 100]
+                ]
+              ] `styleBasic` [flexWidth 100, bgColor containerBg, padding 10, containerBorder],
 
             -- right vstack
             vstack [
-                label "animation here..." `styleBasic` [textCenter, textMiddle, flexHeight 100]
-                  `styleBasic` [flexWidth 100]
-              ] `styleBasic` [bgColor containerBg, padding 10, containerBorder]
+                label "animation here..." `styleBasic` [textCenter, textMiddle]
+                  `styleBasic` []
+              ] `styleBasic` [bgColor containerBg, padding 10, containerBorder, flexWidth 100]
             ]
         ] `styleBasic` [padding 10]
       ]
@@ -77,6 +98,15 @@ handleEvent wenv node model evt =
 
     -- update time in model
     AppSetTime time -> fadeInMsg time ++ [Model $ model & currentTime .~ time]
+
+    -- update position
+    UpdatePosX -> []
+    
+    -- reset animation settings
+    AppReset -> []
+
+    -- exit app
+    AppExit -> [exitApplication]
   where
     fadeInMsg time
       -- todSec converts time to seconds
