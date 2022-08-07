@@ -40,7 +40,9 @@ data AppModel = AppModel
   , _currentTime         :: TimeOfDay
   , _renderString        :: Text
   , _animationState      :: AnimationState
-  , _startBtnEnabled     :: Bool 
+  , _startBtnEnabled     :: Bool
+  , _frameWidthD         :: Double
+  , _frameHeightD        :: Double
   } deriving (Eq, Show)
 
 makeLenses 'Vector
@@ -58,6 +60,8 @@ data AppEvent
   | DoNothing Int
   | DisableStartButton
   | UpdatePosX
+  | UpdateFrameWidth Double
+  | UpdateFrameHeight Double
   | AppStart
   | AppExit
   deriving (Eq, Show)
@@ -87,4 +91,6 @@ instance Default AppModel where
     , _renderString        = ""
     , _animationState      = AnimationState (Vector 1 1) (Vector 3 4)
     , _startBtnEnabled     = True
+    , _frameWidthD         = 20
+    , _frameHeightD        = 10
     }

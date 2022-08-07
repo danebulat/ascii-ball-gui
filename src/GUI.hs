@@ -64,6 +64,19 @@ buildUI wenv model = widgetTree
                 hgrid [ label "VelX:", numericField_ (animationState . ballVelocity . getX) [readOnly]],
                 hgrid [ label "VelY:", numericField_ (animationState . ballVelocity . getY) [readOnly]],
 
+                -- sliders 
+                spacer,
+                label $ "Frame Width: (" <> showt (model ^. frameWidth) <> ")",
+                hslider_ frameWidthD 10 30 [onChange UpdateFrameWidth]
+                  `styleBasic` [height 20],
+                
+                spacer,
+                label $ "Frame Height: (" <> showt (model ^. frameHeight) <> ")",
+                hslider_ frameHeightD 4 45 [onChange UpdateFrameHeight]
+                  `styleBasic` [height 20],
+                label "Ball position will reset when the frame size is changed."
+                  `styleBasic` [textSize 10],
+
                 -- Filler to bottom of container
                 filler,
 
@@ -79,13 +92,19 @@ buildUI wenv model = widgetTree
 
             -- right vstack
             vstack [
+                zstack [
                 label "Press Start"
                   `nodeVisible` model ^. startBtnEnabled
-                  `styleBasic` [textCenter, textMiddle, flexHeight 50],
+                  `styleBasic` [textCenter, textMiddle, flexHeight 40],
 
-                label_  (model ^. renderString) [multiline]
+                scroll (label_  (model ^. renderString) [multiline]
                   `nodeVisible` not (model ^. startBtnEnabled)
-                  `styleBasic` [textFont "HackRegular", textSize 12, textCenter, textMiddle, flexHeight 100]
+                  `styleBasic` [textFont "HackRegular",
+                                textSize 12,
+                                textCenter,
+                                textMiddle,
+                                flexHeight 100])
+                ]
               ] `styleBasic` [bgColor containerBg, padding 10, containerBorder, flexWidth 100]
             ]
         ] `styleBasic` [padding 10]
@@ -126,6 +145,16 @@ handleEvent wenv node model evt =
       [Task $ DoNothing <$>
           --((putStrLn $ show (model ^. animationState . ballPosition)) >> return 0)
           ((putStrLn $ T.unpack $ model ^. renderString) >> return 0)]
+
+    UpdateFrameWidth x ->
+      let x' = fromFractional x :: Int
+      in [Model $ model & frameWidth .~ x'
+                        & animationState . ballPosition .~ Vector 1 1]
+
+    UpdateFrameHeight x ->
+      let x' = fromFractional x :: Int
+      in [Model $ model & frameHeight .~ x'
+                        & animationState . ballPosition .~ Vector 1 1]
 
     DoNothing _ -> []
 
