@@ -47,7 +47,7 @@ buildUI wenv model = widgetTree
           hstack_ [childSpacing_ 10] [
 
             -- left vstack
-            vstack_ [childSpacing_ 10] [
+            scroll (vstack_ [childSpacing_ 10] [
 
                 -- title 
                 label "Ascii Ball GUI" `styleBasic` [textFont "Bold", textSize 20],
@@ -58,24 +58,38 @@ buildUI wenv model = widgetTree
 
                 -- input fields
                 spacer,
-                hgrid [ label "PosX:", numericField_ (animationState . ballPosition . getX) [readOnly]],
-                hgrid [ label "PosY:", numericField_ (animationState . ballPosition . getY) [readOnly]],
+                label "Stats"  `styleBasic` [textSize 16, textFont "Bold"],
+                hgrid_ [childSpacing_ 10] [
+                  label "PosX:", numericField_ (animationState . ballPosition . getX) [readOnly],
+                  label "PosY:", numericField_ (animationState . ballPosition . getY) [readOnly]
+                ],
 
-                hgrid [ label "VelX:", numericField_ (animationState . ballVelocity . getX) [readOnly]],
-                hgrid [ label "VelY:", numericField_ (animationState . ballVelocity . getY) [readOnly]],
+                hgrid_ [childSpacing_ 10] [
+                  label "VelX:", numericField_ (animationState . ballVelocity . getX) [readOnly],
+                  label "VelY:", numericField_ (animationState . ballVelocity . getY) [readOnly]
+                ],
 
                 -- sliders 
                 spacer,
-                label $ "Frame Width: (" <> showt (model ^. frameWidth) <> ")",
+                label "Sliders" `styleBasic` [textSize 16, textFont "Bold"],
+                label $ "Frame Width: " <> showt (model ^. frameWidth),
                 hslider_ frameWidthD 10 30 [onChange UpdateFrameWidth]
                   `styleBasic` [height 20],
                 
-                spacer,
-                label $ "Frame Height: (" <> showt (model ^. frameHeight) <> ")",
-                hslider_ frameHeightD 4 45 [onChange UpdateFrameHeight]
+                label $ "Frame Height: " <> showt (model ^. frameHeight),
+                hslider_ frameHeightD 8 45 [onChange UpdateFrameHeight]
                   `styleBasic` [height 20],
                 label "Ball position will reset when the frame size is changed."
                   `styleBasic` [textSize 10],
+
+                spacer,
+                label $ "VelX Multiplier: " <> showt (fromFractional (model ^. velXD) :: Int),
+                hslider_ velXD 0 5 [onChange UpdateVelX]
+                  `styleBasic` [height 20],
+
+                label $ "VelY Multiplier: " <> showt (fromFractional (model ^. velYD) :: Int),
+                hslider_ velYD 0 5 [onChange UpdateVelY]
+                  `styleBasic` [height 20],
 
                 -- Filler to bottom of container
                 filler,
@@ -88,7 +102,7 @@ buildUI wenv model = widgetTree
 
                   button "Exit" AppExit `styleBasic` [flexWidth 100]
                 ]
-              ] `styleBasic` [flexWidth 100, bgColor containerBg, padding 10, containerBorder],
+              ] `styleBasic` [flexWidth 100, bgColor containerBg, padding 10, containerBorder]),
 
             -- right vstack
             vstack [
@@ -156,6 +170,20 @@ handleEvent wenv node model evt =
       in [Model $ model & frameHeight .~ x'
                         & animationState . ballPosition .~ Vector 1 1]
 
+    UpdateVelX x ->
+      let x1 = fromFractional x :: Int
+          x2 =  model ^. animationState . ballVelocity . getX
+          
+      in [ Model $ model & animationState . ballVelocity . getX
+             .~ if x2 < 0 then negate x1 else x1 ]
+    
+    UpdateVelY y ->
+      let y1 = fromFractional y :: Int
+          y2 = model ^. animationState . ballVelocity . getY
+          
+      in [Model $ model & animationState . ballVelocity . getY
+            .~ if y2 < 0 then negate y1 else y1 ]
+
     DoNothing _ -> []
 
     -- reset animation settings
@@ -190,7 +218,7 @@ addNewlines (x:y:xs)
 
 renderProducer ::(AppEvent -> IO ()) -> IO ()
 renderProducer sendMsg = do
-  threadDelay 500000
+  threadDelay 300000
   sendMsg RenderAnimation
   renderProducer sendMsg
 

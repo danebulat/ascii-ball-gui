@@ -43,6 +43,8 @@ data AppModel = AppModel
   , _startBtnEnabled     :: Bool
   , _frameWidthD         :: Double
   , _frameHeightD        :: Double
+  , _velXD               :: Double
+  , _velYD               :: Double 
   } deriving (Eq, Show)
 
 makeLenses 'Vector
@@ -62,6 +64,8 @@ data AppEvent
   | UpdatePosX
   | UpdateFrameWidth Double
   | UpdateFrameHeight Double
+  | UpdateVelX Double
+  | UpdateVelY Double
   | AppStart
   | AppExit
   deriving (Eq, Show)
@@ -93,4 +97,6 @@ instance Default AppModel where
     , _startBtnEnabled     = True
     , _frameWidthD         = 20
     , _frameHeightD        = 10
+    , _velXD                = 1
+    , _velYD                = 1
     }
