@@ -28,11 +28,18 @@ buildUI wenv model = widgetTree
 
     -- time label
     timeLabel = label (T.takeWhile (/= '.') timeString)
-      `styleBasic` [textFont "Bold", textSize 80, textCenter, textMiddle, flexHeight 100]
+      `styleBasic` [textFont "Bold", textColor white, textSize 80, textCenter, textMiddle, flexHeight 100]
 
     -- main ui
-    widgetTree = vstack [
-        animFadeIn_ [duration 250] timeLabel `nodeKey` "fadeTimeLabel"
+    widgetTree = zstack [
+
+      -- patterned background
+      image_ "./assets/images/pattern09.png" [fitFill, imageRepeatX, imageRepeatY],
+      
+      -- current time
+      vstack [
+          animFadeIn_ [duration 250] timeLabel `nodeKey` "fadeTimeLabel"
+        ]
       ]
 
 -- -------------------------------------------------------------------
