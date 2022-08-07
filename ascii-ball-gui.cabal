@@ -21,6 +21,7 @@ executable app
   other-modules:
       Animation
       AppTypes
+      GUI
   hs-source-dirs:
       app
       src

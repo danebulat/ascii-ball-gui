@@ -32,7 +32,8 @@ executables:
     - -fwarn-incomplete-patterns
     other-modules:
       [ Animation
-      , AppTypes ]
+      , AppTypes
+      , GUI ]
 
     # Turned off due to rendering issues when resizing the
     # rendering window during runtime.

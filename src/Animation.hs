@@ -1,151 +1,122 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE OverloadedStrings  #-}
-
 module Animation where
 
-import Control.Concurrent ( threadDelay )
-import Control.Lens
-import Data.Default
-import Data.Text          ( Text )
-import Data.Time
-import TextShow           ( showt )
-import Monomer
+import AppTypes
 
-import qualified Data.Text as T
-import qualified Monomer.Lens as L
+ballChar' :: RenderChars -> Char
+ballChar' = _ballChar
 
-import AppTypes 
+cornerChars' :: RenderChars -> (Char, Char)
+cornerChars' = _cornerChars
+
+verticalWallChar' :: RenderChars -> Char
+verticalWallChar' = _verticalWallChar 
+
+horizontalWallChar' :: RenderChars -> Char
+horizontalWallChar' = _horizontalWallChar 
 
 -- -------------------------------------------------------------------
--- Build UI
+-- Animation logic
 
-buildUI
-  :: WidgetEnv AppModel AppEvent
-  -> AppModel
-  -> WidgetNode AppModel AppEvent
-buildUI wenv model = widgetTree
-  where
-    -- variables
-    containerBg = rgba 0 0 0 0.2
-    containerBorder = border 1.0 black
+mkState :: Vector -> Vector -> AnimationState
+mkState = AnimationState
+
+nextStateX :: AnimationState -> Vector -> AnimationState
+nextStateX AnimationState
+             { _ballVelocity = Vector vX vY
+             , _ballPosition = Vector pX pY }
+           Vector
+             { _getX = w
+             , _getY = y }
+  | pX+vX > w-2 =
+    let newX = calcOvershoot (w-2) pX vX
+    in mkState (Vector (negate vX) vY) (Vector newX pY)
     
-    -- get current time from model as string 
-    timeString = T.pack . show $ model ^. currentTime
-
-    -- time label
-    timeLabel = label (T.takeWhile (/= '.') timeString)
-      `styleBasic` [textFont "Bold", textColor white, textSize 18, textLeft, textTop]
-
-    -- main ui
-    widgetTree = zstack [
-      -- patterned background
-      image_ "./assets/images/pattern09.png" [fitFill, imageRepeatX, imageRepeatY],
-      
-      zstack [
-          -- outer-most hstack to hold box containers
-          hstack_ [childSpacing_ 10] [
-
-            -- left vstack
-            vstack_ [childSpacing_ 10] [
-
-                -- title 
-                label "Ascii Ball GUI" `styleBasic` [textFont "Bold", textSize 20],
-
-                -- current time 
-                animFadeIn_ [duration 250] timeLabel
-                  `nodeKey` "fadeTimeLabel",
-                
-                -- input fields
-                spacer,
-                hgrid [ label "PosX:", numericField (ballInitialPosition . getX)],
-                hgrid [ label "PosY:", numericField (ballInitialPosition . getY)],
-                
-                hgrid [ label "VelX:", numericField (ballInitialVelocity . getX)],
-                hgrid [ label "VelY:", numericField (ballInitialVelocity . getY)],
-                
-                -- Filler to bottom of container
-                filler,
-                
-                -- exit button
-                hstack_ [childSpacing_ 10] [
-                  button "Reset" AppReset `styleBasic` [flexWidth 100],
-                  mainButton "Exit" AppExit `styleBasic` [flexWidth 100]
-                ]
-              ] `styleBasic` [flexWidth 100, bgColor containerBg, padding 10, containerBorder],
-
-            -- right vstack
-            vstack [
-                label "animation here..." `styleBasic` [textCenter, textMiddle]
-                  `styleBasic` []
-              ] `styleBasic` [bgColor containerBg, padding 10, containerBorder, flexWidth 100]
-            ]
-        ] `styleBasic` [padding 10]
-      ]
-
--- -------------------------------------------------------------------
--- Event handler
-
-handleEvent
-  :: WidgetEnv AppModel AppEvent
-  -> WidgetNode AppModel AppEvent
-  -> AppModel
-  -> AppEvent
-  -> [AppEventResponse AppModel AppEvent]
-handleEvent wenv node model evt =
-  case evt of
-    -- start time producer
-    AppInit -> [Producer timeOfDayProducer]
-
-    -- update time in model
-    AppSetTime time -> fadeInMsg time ++ [Model $ model & currentTime .~ time]
-
-    -- update position
-    UpdatePosX -> []
+  | pX+vX < 1 =
+    let newX = calcOvershoot' 1 pX vX
+    in mkState (Vector (negate vX) vY) (Vector newX pY)
     
-    -- reset animation settings
-    AppReset -> []
+  | otherwise = mkState (Vector vX vY) (Vector (pX+vX) pY)
 
-    -- exit app
-    AppExit -> [exitApplication]
-  where
-    fadeInMsg time
-      -- todSec converts time to seconds
-      | truncate (todSec time) `mod` 10 /= 0 = []
-      | otherwise = [Message "fadeTimeLabel" AnimationStart]
+nextStateY :: AnimationState -> Vector -> AnimationState
+nextStateY AnimationState
+             { _ballVelocity = Vector vX vY
+             , _ballPosition = Vector pX pY }
+           Vector
+             { _getX = w
+             , _getY = h }
+  | pY+vY > h-3 =
+    let  newY = calcOvershoot (h-3) pY vY
+    in mkState (Vector vX (negate vY)) (Vector pX newY)
+    
+  | pY+vY < 1 =
+    let newY = calcOvershoot' 1 pY vY
+    in mkState (Vector vX (negate vY)) (Vector pX newY)
+    
+  | otherwise= mkState (Vector vX vY) (Vector pX (pY+vY))
+
+calcOvershoot :: Int -> Int -> Int -> Int
+calcOvershoot bound p v =
+  let ov = abs((p + v) - bound) -- overshoot in next frame
+      tw = bound - p            -- space to wall
+      mv = abs (ov - tw)        -- amount to move in opposite direction from wall
+  in bound - mv
+
+calcOvershoot' :: Int -> Int -> Int -> Int
+calcOvershoot' bound p v =
+  let ov = abs((p + v) + bound) -- overshoot in next frame
+      tw = bound + p            -- space to wall
+      mv = abs (ov - tw)        -- amount to move in opposite direction from wall
+  in bound + mv
 
 -- -------------------------------------------------------------------
--- Producers
+-- Render logic
 
-timeOfDayProducer :: (AppEvent -> IO ()) -> IO ()
-timeOfDayProducer sendMsg = do
-  time <- getLocalTimeOfDay   -- get current time
-  sendMsg (AppSetTime time)   -- broadcast AppSetTime event to add
-  threadDelay $ 1000 * 1000   -- delays thread for 1 second
-  timeOfDayProducer sendMsg   -- re-call function recursively
+render :: AppModel -> AnimationState -> String
+render AppModel
+         { _frameWidth   = width
+         , _frameHeight  = height
+         , _renderChars  = rchars }
+       AnimationState
+         { _ballPosition = pos } =
 
-getLocalTimeOfDay :: IO TimeOfDay
-getLocalTimeOfDay = do
-  time <- getZonedTime        -- IO ZonedTime
-  return
-    . localTimeOfDay          -- LocalTime -> TimeOfDay
-    . zonedTimeToLocalTime    -- ZonedTime -> LocalTime (a local time together with a time zone)
-    $ time                    -- IO TimeOfDay 
+  -- Calculate total characters to draw on screen
+  -- https://stackoverflow.com/questions/1730961/convert-a-2d-array-index-into-a-1d-index
+  let height'    = height - 1
+      bufferSize = (width * height')
+      Vector x y = pos
+      ballPos    = (y * width) + x    -- OR (row * row_width) + col for flipped axes
 
--- -------------------------------------------------------------------
--- Main
-
-main :: IO ()
-main = do
-  time <- getLocalTimeOfDay
-  startApp (model time) handleEvent buildUI config
+  -- Recursively construct string to draw to screen
+  -- Remove 'init' to align correctly in GHCI
+  in go 0 bufferSize ballPos
   where
-    config =
-      [ appWindowTitle "Ascii Ball GUI"
-      , appWindowIcon  "./assets/images/icon.png"
-      , appTheme       darkTheme
-      , appFontDef     "Regular" "./assets/fonts/Roboto-Regular.ttf"
-      , appFontDef     "Bold"    "./assets/fonts/Roboto-Bold.ttf"
-      , appInitEvent   AppInit ]
-    model time =
-      let m = def :: AppModel
-      in m {_currentTime = time }
+    go :: Int -> Int -> Int -> [Char]
+    go i target ballPos
+
+      -- end of buffer
+      | i > target = []
+
+      -- draw ball
+      | i == ballPos = ballChar' rchars : go (i+1) target ballPos
+
+      -- draw corners
+      | i == 0 || i == target-1 =
+        fst (cornerChars' rchars) : go (i+1) target ballPos
+
+      | i == (width-1) || i == (target-width) =
+        snd (cornerChars' rchars) :  go (i+1) target ballPos
+
+      -- draw vertical walls 
+      | i `rem` width == 0 && (i < (width * (height-1))) ||
+        i `rem` width == (width-1) =
+          verticalWallChar' rchars: go (i+1) target ballPos
+
+      -- draw horizontal wall
+      | i `elem` [1..width-1] ++
+                 [(width*(height-1))-width..(width*(height-1))]
+        && (i < (width*(height-1))) =
+          horizontalWallChar' rchars : go (i+1) target ballPos
+
+      -- default draw empty space 
+      | otherwise = ' ' : go (i+1) target ballPos
+

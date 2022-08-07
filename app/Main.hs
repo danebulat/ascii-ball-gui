@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Animation as A
+import qualified GUI as G
 
 main :: IO ()
-main = A.main 
+main = G.main 

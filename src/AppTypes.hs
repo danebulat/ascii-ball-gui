@@ -17,8 +17,8 @@ data Vector = Vector
   } deriving (Eq, Show)
 
 data AnimationState = AnimationState
-  { ballVelocity :: Vector
-  , ballPosition :: Vector
+  { _ballVelocity :: Vector
+  , _ballPosition :: Vector
   } deriving (Eq, Show)
 
 -- -------------------------------------------------------------------
@@ -38,9 +38,12 @@ data AppModel = AppModel
   , _frameHeight         :: Int
   , _renderChars         :: RenderChars
   , _currentTime         :: TimeOfDay
+  , _renderString        :: Text
+  , _animationState      :: AnimationState
   } deriving (Eq, Show)
 
 makeLenses 'Vector
+makeLenses 'AnimationState
 makeLenses 'RenderChars
 makeLenses 'AppModel
 
@@ -50,6 +53,8 @@ makeLenses 'AppModel
 data AppEvent
   = AppInit
   | AppSetTime TimeOfDay
+  | RenderAnimation
+  | DoNothing Int
   | UpdatePosX
   | AppReset
   | AppExit
@@ -57,6 +62,9 @@ data AppEvent
 
 -- -------------------------------------------------------------------
 -- Defaults
+
+instance Default Vector where
+  def = Vector 0 0
 
 instance Default RenderChars where
   def = RenderChars
@@ -71,7 +79,9 @@ instance Default AppModel where
     { _ballInitialVelocity = Vector 1 1
     , _ballInitialPosition = Vector 3 4
     , _frameWidth          = 20
-    , _frameHeight         = 20
+    , _frameHeight         = 10
     , _renderChars         = def :: RenderChars
     , _currentTime         = undefined  -- put getLocalTimeOfDay in module and call here
+    , _renderString        = ""
+    , _animationState      = AnimationState (Vector 1 1) (Vector 3 4)
     }
