@@ -59,14 +59,14 @@ data AppEvent
   = AppInit
   | AppSetTime TimeOfDay
   | RenderAnimation
-  | DoNothing Int
   | DisableStartButton
-  | UpdatePosX
   | UpdateFrameWidth Double
   | UpdateFrameHeight Double
   | UpdateVelX Double
   | UpdateVelY Double
   | AppStart
+  | FadeInRender
+  | StartRendering
   | AppExit
   deriving (Eq, Show)
 

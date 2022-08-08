@@ -35,7 +35,13 @@ buildUI wenv model = widgetTree
 
     -- time label
     timeLabel = label (T.takeWhile (/= '.') timeString)
-      `styleBasic` [textFont "HackRegular", textColor white, textSize 18, textLeft, textTop]
+      `styleBasic` [textFont "Regular", textColor white, textSize 12, textRight, textTop]
+
+    -- wrappers
+    panelHeader t = label t `styleBasic` [textSize 12, textFont "Bold"]
+    statsLabel  t = label t `styleBasic` [textSize 11]
+    statsField  v = numericField_ v [readOnly] `styleBasic` [textSize 11, height 20]
+    sliderStyle   = [height 15.0]
 
     -- main ui
     widgetTree = zstack [
@@ -48,48 +54,41 @@ buildUI wenv model = widgetTree
 
             -- left vstack
             scroll (vstack_ [childSpacing_ 10] [
-
-                -- title 
-                label "Ascii Ball GUI" `styleBasic` [textFont "Bold", textSize 20],
-
-                -- current time 
-                animFadeIn_ [duration 250] timeLabel
-                  `nodeKey` "fadeTimeLabel",
+                hgrid [
+                  label "Ascii Ball GUI" `styleBasic` [textFont "Bold", textSize 14],
+                  timeLabel
+                ],
 
                 -- input fields
                 spacer,
-                label "Stats"  `styleBasic` [textSize 16, textFont "Bold"],
+                panelHeader "Stats",
                 hgrid_ [childSpacing_ 10] [
-                  label "PosX:", numericField_ (animationState . ballPosition . getX) [readOnly],
-                  label "PosY:", numericField_ (animationState . ballPosition . getY) [readOnly]
+                  statsLabel "PosX:", statsField (animationState . ballPosition . getX),
+                  statsLabel "PosY:", statsField (animationState . ballPosition . getY)
                 ],
 
                 hgrid_ [childSpacing_ 10] [
-                  label "VelX:", numericField_ (animationState . ballVelocity . getX) [readOnly],
-                  label "VelY:", numericField_ (animationState . ballVelocity . getY) [readOnly]
+                  statsLabel "VelX:", statsField (animationState . ballVelocity . getX),
+                  statsLabel "VelY:", statsField (animationState . ballVelocity . getY)
                 ],
 
                 -- sliders 
                 spacer,
-                label "Sliders" `styleBasic` [textSize 16, textFont "Bold"],
-                label $ "Frame Width: " <> showt (model ^. frameWidth),
-                hslider_ frameWidthD 10 30 [onChange UpdateFrameWidth]
-                  `styleBasic` [height 20],
+                panelHeader "Controls",
+                statsLabel $ "Frame Width: " <> showt (model ^. frameWidth),
+                hslider_ frameWidthD 10 30 [onChange UpdateFrameWidth] `styleBasic` sliderStyle,
                 
-                label $ "Frame Height: " <> showt (model ^. frameHeight),
-                hslider_ frameHeightD 8 45 [onChange UpdateFrameHeight]
-                  `styleBasic` [height 20],
+                statsLabel $ "Frame Height: " <> showt (model ^. frameHeight),
+                hslider_ frameHeightD 8 45 [onChange UpdateFrameHeight] `styleBasic` sliderStyle,
                 label "Ball position will reset when the frame size is changed."
-                  `styleBasic` [textSize 10],
+                  `styleBasic` [textSize 9],
 
                 spacer,
-                label $ "VelX Multiplier: " <> showt (fromFractional (model ^. velXD) :: Int),
-                hslider_ velXD 0 5 [onChange UpdateVelX]
-                  `styleBasic` [height 20],
+                statsLabel $ "VelX Multiplier: " <> showt (fromFractional (model ^. velXD) :: Int),
+                hslider_ velXD 0 5 [onChange UpdateVelX] `styleBasic` sliderStyle,
 
-                label $ "VelY Multiplier: " <> showt (fromFractional (model ^. velYD) :: Int),
-                hslider_ velYD 0 5 [onChange UpdateVelY]
-                  `styleBasic` [height 20],
+                statsLabel $ "VelY Multiplier: " <> showt (fromFractional (model ^. velYD) :: Int),
+                hslider_ velYD 0 5 [onChange UpdateVelY] `styleBasic` sliderStyle,
 
                 -- Filler to bottom of container
                 filler,
@@ -98,26 +97,27 @@ buildUI wenv model = widgetTree
                 hstack_ [childSpacing_ 10] [
                   mainButton_ "Start" AppStart [onClick DisableStartButton]
                     `nodeEnabled` model ^. startBtnEnabled
-                    `styleBasic` [flexWidth 100],
+                    `styleBasic` [flexWidth 100, textSize 12],
 
-                  button "Exit" AppExit `styleBasic` [flexWidth 100]
+                  button "Exit" AppExit `styleBasic` [flexWidth 100, textSize 12]
                 ]
               ] `styleBasic` [flexWidth 100, bgColor containerBg, padding 10, containerBorder]),
 
             -- right vstack
             vstack [
                 zstack [
-                label "Press Start"
-                  `nodeVisible` model ^. startBtnEnabled
-                  `styleBasic` [textCenter, textMiddle, flexHeight 40],
+                animFadeOut_ [duration 250, onFinished FadeInRender] (label "Press Start"
+                  `styleBasic` [textCenter, textMiddle, flexHeight 40])
+                  `nodeKey` "startLabel",
 
-                scroll (label_  (model ^. renderString) [multiline]
-                  `nodeVisible` not (model ^. startBtnEnabled)
-                  `styleBasic` [textFont "HackRegular",
-                                textSize 12,
-                                textCenter,
-                                textMiddle,
-                                flexHeight 100])
+                scroll (animFadeIn_ [duration 250, onFinished StartRendering]
+                  (label_  (model ^. renderString) [multiline]
+                    `nodeVisible` not (model ^. startBtnEnabled)
+                    `styleBasic` [textFont "HackRegular",
+                                  textSize 12,
+                                  textCenter,
+                                  textMiddle,
+                                  flexHeight 100]) `nodeKey` "renderLabel")
                 ]
               ] `styleBasic` [bgColor containerBg, padding 10, containerBorder, flexWidth 100]
             ]
@@ -139,7 +139,7 @@ handleEvent wenv node model evt =
     AppInit -> [Producer timeOfDayProducer]
 
     -- update time in model
-    AppSetTime time -> fadeInMsg time ++ [Model $ model & currentTime .~ time]
+    AppSetTime time -> [Model $ model & currentTime .~ time]
 
     -- updates animation
     RenderAnimation ->
@@ -153,12 +153,6 @@ handleEvent wenv node model evt =
       in [ Model $ model & renderString   .~ T.pack new_string'
                          & animationState .~ next_anim_state
          ]
-
-    -- update position
-    UpdatePosX ->
-      [Task $ DoNothing <$>
-          --((putStrLn $ show (model ^. animationState . ballPosition)) >> return 0)
-          ((putStrLn $ T.unpack $ model ^. renderString) >> return 0)]
 
     UpdateFrameWidth x ->
       let x' = fromFractional x :: Int
@@ -184,22 +178,19 @@ handleEvent wenv node model evt =
       in [Model $ model & animationState . ballVelocity . getY
             .~ if y2 < 0 then negate y1 else y1 ]
 
-    DoNothing _ -> []
+    -- start animation
+    AppStart -> [ Message "startLabel" AnimationStart ]
 
-    -- reset animation settings
-    AppStart -> [Producer renderProducer]
+    FadeInRender -> [ Message "renderLabel" AnimationStart, Event RenderAnimation ]
+
+    StartRendering -> [ Producer renderProducer ]
 
     -- disable start button after clicked
     DisableStartButton -> [ Model $ model & startBtnEnabled .~ False ]
 
     -- exit app
     AppExit -> [exitApplication]
-  where
-    fadeInMsg time
-      -- todSec converts time to seconds
-      | truncate (todSec time) `mod` 10 /= 0 = []
-      | otherwise = [Message "fadeTimeLabel" AnimationStart]
-
+ 
 -- -------------------------------------------------------------------
 -- String processing
 
