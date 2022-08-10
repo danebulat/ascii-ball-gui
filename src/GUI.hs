@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
 module GUI where
@@ -30,7 +29,7 @@ buildUI wenv model = widgetTree
     containerBg = rgba 0 0 0 0.2
     containerBorder = border 1.0 black
 
-    -- get current time from model as string 
+    -- get current time from model as string
     timeString = T.pack . show $ model ^. currentTime
 
     -- time label

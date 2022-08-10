@@ -11,8 +11,8 @@ copyright:           2022 Dane Bulat
 extra-source-files:
 - README.md
 
-default-extensions:
-- OverloadedStrings
+#default-extensions:
+#- OverloadedStrings
 
 dependencies:
   - base >= 4.7 && < 5

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -91,7 +92,7 @@ instance Default AppModel where
     , _frameWidth          = 20
     , _frameHeight         = 10
     , _renderChars         = def :: RenderChars
-    , _currentTime         = undefined  -- put getLocalTimeOfDay in module and call here
+    , _currentTime         = undefined  -- TODO: put getLocalTimeOfDay in module and call here
     , _renderString        = ""
     , _animationState      = AnimationState (Vector 1 1) (Vector 3 4)
     , _startBtnEnabled     = True
